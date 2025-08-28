@@ -18,7 +18,7 @@ class Block(nn.Module):
         self.ln_2 = nn.LayerNorm(config.n_embd)
         self.mlp = MLP(config)
         
-    def foward(self, x):
+    def forward(self, x):
         x = x + self.attn(self.ln_1(x))
         x = x + self.mlp(self.ln_2(x))
         return x     
@@ -37,13 +37,13 @@ class GPT(nn.Module):
         super().__init__()
         self.config = config
         
-        self.transformer = nn.Module(dict(
+        self.transformer = nn.ModuleDict(dict(
             wte = nn.Embedding(config.vocab_size, config.n_embd),
             wpe = nn.Embedding(config.block_size, config.n_embd),
             h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f = nn.LayerNorm(config.n_embd)
         ))
-        self.ln_head = nn.Linear(config.n_head, config.vocab_size, bias=False)
+        self.ln_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
         
     @classmethod
     def from_pretrained(cls, model_type):
@@ -84,7 +84,7 @@ class GPT(nn.Module):
         transposed = ["attn.c_attn.weight", "attn.c_proj.weight", "mlp.c_fc.weight", "mlp.c_proj.weight"]
         assert len(sd_keys_hf) == len(sd_keys), "mismatched keys: {} != {}".format(len(sd_keys_hf), len(sd_keys))
         for k in sd_keys_hf:
-            if any(k.endwith(w) for w in transposed):
+            if any(k.endswith(w) for w in transposed):
                 assert sd_hf[k].shape[::-1] == sd[k].shape
                 with torch.no_grad():
                     sd[k].copy_(sd_hf[k].t())
