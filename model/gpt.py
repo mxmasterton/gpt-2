@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+import math
+
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -44,6 +46,23 @@ class GPT(nn.Module):
             ln_f = nn.LayerNorm(config.n_embd)
         ))
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+   
+        # weight sharing scheme
+        self.transformer.wte.weight = self.lm_head.weight
+        
+        # init parameters
+        self.apply(self._init_weights)
+    
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            std = 0.02
+            if hasattr(module, "GPT_SCALE_INIT"):
+                std /= math.sqrt(2 * self.config.n_layer)
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
     
     def forward(self, tokens, targets):
         B, T = tokens.shape
