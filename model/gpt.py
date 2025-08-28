@@ -75,7 +75,7 @@ class GPT(nn.Module):
         model_hf = GPT2LMHeadModel.from_pretrained(model_type)
         
         sd_hf = model_hf.state_dict()
-        sd_keys_hf = model_hf.keys()
+        sd_keys_hf = sd_hf.keys()
         sd_keys_hf = [k for k in sd_keys_hf if not k.endswith(".attn.masked_bias")]
         sd_keys_hf = [k for k in sd_keys_hf if not k.endswith(".attn.bias")]
         
