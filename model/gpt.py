@@ -45,7 +45,7 @@ class GPT(nn.Module):
         ))
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
     
-    def forward(self, tokens):
+    def forward(self, tokens, targets):
         B, T = tokens.shape
         
         assert T <= self.config.block_size, "Cannot forward sequence of length {}, block size is only {}".format(T, self.config.block_size)
@@ -63,7 +63,17 @@ class GPT(nn.Module):
         # forward the final layernorm and the classifier
         x = self.transformer.ln_f(x)
         logits = self.lm_head(x)
-        return logits
+        
+        if targets is None:
+            loss = None
+        else:
+            B, T, C = logits.shape
+            logits = logits.view(B*T, C)
+            tokens = tokens.view(B*T)
+            
+            loss = F.cross_entropy(logits, tokens)
+        
+        return logits, loss
      
     @classmethod
     def from_pretrained(cls, model_type):
