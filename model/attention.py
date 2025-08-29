@@ -17,6 +17,7 @@ class CausalSelfAttention(nn.Module):
         
         # output projection
         self.c_proj = nn.Linear(config.n_embd, config.n_embd)
+        self.c.proj.GPT_SCALE_INIT = 1
         
         # regularisation
         self.n_head = config.n_head
@@ -37,12 +38,12 @@ class CausalSelfAttention(nn.Module):
         v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, C)
         
         # compute the attention scores
-        att = (q @ k.transpose(-2, -1)) / math.sqrt(k.shape[-1]) # (B, nh, T, T)
-        att = att.masked_fill(self.bias[:, :, :T, :T] == 0, float("-inf"))
-        att = F.softmax(att, dim=-1)
+        # att = (q @ k.transpose(-2, -1)) / math.sqrt(k.shape[-1]) # (B, nh, T, T)
+        # att = att.masked_fill(self.bias[:, :, :T, :T] == 0, float("-inf"))
+        # att = F.softmax(att, dim=-1)
+        # out = att @ v # (B, nh, T, T) @ (B, nh, T, C) = (B, nh, T, C)
+        out = F.scaled_dot_product_attention(q, k, v, is_causal=True)
         
-        # perform the weighted aggregation of the values
-        out = att @ v # (B, nh, T, T) @ (B, nh, T, C) = (B, nh, T, C)
         out = out.transpose(1, 2).contiguous().view(B, T, C) # re-assembling everything
         
         # output projection
